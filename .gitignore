@@ -1,0 +1,26 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database and state files (keep the data folder structure but ignore the actual data)
+data/db/
+data/ingestion_state.json
+data/eval_results.csv
+data/policies/
+data/staging/
+data/screenshots/
+data/scavenged_history.json
+data/student_records.csv
+
+# macOS
+.DS_Store

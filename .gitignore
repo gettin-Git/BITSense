@@ -13,12 +13,16 @@ __pycache__/
 *$py.class
 
 # Database and state files (keep the data folder structure but ignore the actual data)
-data/db/
+data/db/*
+!data/db/.gitkeep
 data/ingestion_state.json
 data/eval_results.csv
-data/policies/
-data/staging/
-data/screenshots/
+data/policies/*
+!data/policies/.gitkeep
+data/staging/*
+!data/staging/.gitkeep
+data/screenshots/*
+!data/screenshots/.gitkeep
 data/scavenged_history.json
 data/student_records.csv
 

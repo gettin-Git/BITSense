@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -30,6 +31,7 @@ class PolicyRAGTool(BaseTool):
     args_schema: Type[BaseModel] = PolicyQueryInput
     
     def _run(self, query: str) -> str:
+        start_time = time.time()
         # Initialize embeddings
         embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
         
@@ -65,42 +67,42 @@ class PolicyRAGTool(BaseTool):
             LAST_RETRIEVED_METADATA.append({
                 "source": src,
                 "source_url": url,
-                "screenshot": screenshot
+                "screenshot": screenshot,
+                "content": doc.page_content
             })
             
             # Context for AI: pure text, source doc name, and source website URL
             context_chunks.append(f"Source Document: {src}\nSource Website: {url}\nContent: {doc.page_content}")
             
         context = "\n\n".join(context_chunks)
+        execution_time = time.time() - start_time
+        print(f"\n[⏱️ Policy RAG Tool Execution Time: {execution_time:.2f}s]\n")
         return f"Retrieved Policy Context:\n{context}"
 
 class StudentDataInput(BaseModel):
-    python_code: str = Field(..., description="Python code to analyze `df`. The DataFrame `df` is already loaded with student records. Print the final result to return it. You can use `pd` and `re`.")
+    sql_query: str = Field(..., description="SQL query to analyze the student records. The data is in a table called `student_records`. Just write a standard SQL SELECT query against the `student_records` table.")
 
 class StudentDataTool(BaseTool):
     name: str = "Student Data Analyst Tool"
-    description: str = "Use this tool to execute Python code on student data. `df` is pre-loaded. Use pandas and regex to extract insights. Example: `print(df['ID'].str.extract(r'(?P<discipline>[A-Z0-9]+)').value_counts())`"
+    description: str = "Use this tool to execute SQL queries on student data. The data is available in a table named `student_records`. Example: `SELECT major, COUNT(*) FROM student_records GROUP BY major`"
     args_schema: Type[BaseModel] = StudentDataInput
     
-    def _run(self, python_code: str) -> str:
+    def _run(self, sql_query: str) -> str:
+        start_time = time.time()
+        import duckdb
         if not os.path.exists(STUDENT_RECORDS_CSV):
             return "Error: Student records CSV not found."
             
+        if any(keyword in sql_query.upper() for keyword in ["DROP", "INSERT", "UPDATE", "DELETE", "ALTER", "CREATE"]):
+            return "Error: Only SELECT queries are allowed."
+            
         try:
-            df = pd.read_csv(STUDENT_RECORDS_CSV)
-            local_env = {"df": df, "pd": pd, "re": re}
+            con = duckdb.connect(database=':memory:', read_only=False)
+            con.execute(f"CREATE VIEW student_records AS SELECT * FROM read_csv_auto('{STUDENT_RECORDS_CSV}')")
+            result = con.execute(sql_query).df()
             
-            old_stdout = sys.stdout
-            redirected_output = sys.stdout = StringIO()
-            
-            try:
-                exec(python_code, {}, local_env)
-                output = redirected_output.getvalue()
-            except Exception as e:
-                output = f"Execution error: {str(e)}"
-            finally:
-                sys.stdout = old_stdout
-                
-            return output.strip() if output.strip() else "Code executed successfully but produced no output. Did you forget to print()?"
+            execution_time = time.time() - start_time
+            print(f"\n[⏱️ Student Data Tool Execution Time: {execution_time:.2f}s]\n")
+            return result.to_string()
         except Exception as e:
-            return f"Error loading data: {str(e)}"
+            return f"SQL Error: {str(e)}"

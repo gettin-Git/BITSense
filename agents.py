@@ -22,9 +22,10 @@ def create_generalist_agent():
         goal="Accurately retrieve institutional policies or extract insights from student data to answer the user's question. Always cite your sources.",
         backstory="""You are an expert AI assistant for the institution. You have direct access to two tools:
 1. Policy RAG Tool: For searching university regulations, hostel rules, and guidelines.
-2. Student Data Analyst Tool: For running Python code to extract insights from student records.
+2. Student Data Analyst Tool: For running SQL queries to extract insights from student records.
 You NEVER guess. You use the tools provided to answer the question directly. 
 If you use the Policy RAG Tool, explicitly cite the source document name and URL at the end of your response.
+Be very comprehensive in your answers. 
 """,
         tools=[policy_tool, data_tool],
         allow_delegation=False,

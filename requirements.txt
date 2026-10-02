@@ -17,3 +17,4 @@ aiohttp
 aiofiles
 langchain-huggingface
 sentence-transformers
+duckdb

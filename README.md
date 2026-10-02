@@ -1,14 +1,14 @@
 # Hybrid Institutional Intelligence Assistant
 
-A production-grade, multi-agent AI assistant utilizing CrewAI, LangChain, and Ragas for evaluation. This assistant is capable of answering academic policy questions using RAG (Retrieval-Augmented Generation) and analyzing tabular student records using a Python/Pandas agent. 
+A production-grade AI assistant utilizing the CrewAI framework, LangChain, and Ragas for evaluation. This assistant is capable of answering academic policy questions using RAG (Retrieval-Augmented Generation) and analyzing tabular student records using a DuckDB SQL execution tool.
 
 ## System Architecture
 
 The project consists of several core components working together:
 
-1. **Manager Agent**: Analyzes user queries and delegates tasks.
-2. **Academic Policy Specialist**: Uses a custom RAG tool with a Parent-Child Document Retriever to search through academic policies.
-3. **Student Data Analyst**: Uses a Python/Pandas tool equipped with regex capabilities to analyze structured student data (`student_records.csv`).
+1. **Institutional AI Assistant**: A single generalist agent built with CrewAI that has access to multiple tools. It analyzes user queries and directly decides which tool to use.
+2. **Policy RAG Tool**: A custom RAG tool with a Parent-Child Document Retriever to search through academic policies.
+3. **Student Data Analyst Tool**: A DuckDB SQL execution tool to analyze structured student data (`student_records.csv`).
 4. **API and UI**: A robust FastAPI backend with a `/chat` POST endpoint, and a Streamlit UI to display the conversation flow and agent thought processes.
 5. **Evaluation Pipeline**: Uses the `ragas` library to calculate and print scores for faithfulness, answer relevancy, context precision, and context recall.
 
@@ -18,7 +18,7 @@ The project consists of several core components working together:
 
 Before running the code, you need to provide your authentic data files in the `data/` directory:
 1. **Policies:** Place your policy `.pdf` files inside the `data/policies/` folder.
-2. **Student Data:** Place your student records CSV file exactly at `data/student_records.csv`.
+2. **Student Data:** Place your student records CSV file exactly at `data/student_records.csv`. *(Note: For privacy and security, no actual student records are populated or provided in this repository. You must create and provide your own dataset).*
 3. **Evaluation Data (Optional):** If you want to use the Ragas evaluator, place your questions at `data/eval_questions.csv`. It must have `question` and `ground_truth` columns.
 
 ### Step 2: Set up a Virtual Environment and Install Dependencies
@@ -51,11 +51,15 @@ EMBEDDING_MODEL=models/embedding-001
 
 ### Step 4: Scavenge the Policies (Optional)
 
-If you need to fetch the latest academic policies from the BITS Pilani domains, you can run the scraper. This will download new PDFs into `data/staging/`:
+If you need to fetch the latest academic policies from the BITS Pilani domains, you can run the scraper.
+
 ```bash
 python scavenge_docs.py
 ```
-After reviewing the staged PDFs, you can move them to `data/policies/` for ingestion.
+
+By default, the script will interactively ask if you want to auto-approve the documents. You can bypass this with flags:
+- `python scavenge_docs.py --stage`: Downloads PDFs into `data/staging/` so you can manually review and approve them using the Admin UI (`streamlit run admin_ui.py`).
+- `python scavenge_docs.py --auto-approve`: Downloads directly into `data/policies/` for immediate ingestion.
 
 ### Step 5: Ingest the Policies
 
@@ -79,7 +83,7 @@ This starts the Streamlit user interface.
 ```bash
 streamlit run app.py
 ```
-A browser window will automatically open (usually at `http://localhost:8501`) where you can start chatting with your multi-agent assistant!
+A browser window will automatically open (usually at `http://localhost:8501`) where you can start chatting with your AI assistant!
 
 ## Evaluating the Pipeline
 

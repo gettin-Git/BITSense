@@ -39,6 +39,19 @@ for message in st.session_state.messages:
             for s in message["screenshots"]:
                 if os.path.exists(s):
                     st.image(s, use_container_width=True, caption="Source Webpage Snapshot")
+                    
+        if message.get("sources"):
+            st.markdown("---")
+            with st.expander("📝 View Exact Retrieved Policy Text"):
+                for s in message["sources"]:
+                    st.markdown(f"> {s['content']}\n\n— **{s['source']}**")
+                    
+        if message.get("execution_time"):
+            st.caption(f"⏱️ **Total Agent Execution Time:** {message['execution_time']:.2f} seconds")
+            if message.get("breakdown"):
+                with st.expander("⏳ View Time Breakdown"):
+                    for b in message["breakdown"]:
+                        st.markdown(f"- **{b['step']}**: {b['time']:.2f} seconds")
 
 if prompt := st.chat_input("E.g., What is the grading policy or check hostel rules?"):
     # Add user message
@@ -50,6 +63,9 @@ if prompt := st.chat_input("E.g., What is the grading policy or check hostel rul
     with st.chat_message("assistant"):
         logs = ""
         screenshots = []
+        sources = []
+        execution_time = 0
+        breakdown = []
         status_container = st.status("Assistant is starting up...", expanded=True)
         try:
             response = requests.post(API_STREAM_URL, json={"query": prompt}, stream=True)
@@ -71,7 +87,10 @@ if prompt := st.chat_input("E.g., What is the grading policy or check hostel rul
                     elif data["type"] == "result":
                         answer = data["response"]
                         screenshots = data.get("screenshots", [])
-                        status_container.update(label="Complete!", state="complete", expanded=False)
+                        sources = data.get("sources", [])
+                        execution_time = data.get("execution_time", 0)
+                        breakdown = data.get("breakdown", [])
+                        status_container.update(label=f"Complete! (in {execution_time:.2f}s)", state="complete", expanded=False)
                     elif data["type"] == "error":
                         answer = f"Error: {data['response']}"
                         status_container.update(label="Error occurred", state="error", expanded=False)
@@ -89,9 +108,25 @@ if prompt := st.chat_input("E.g., What is the grading policy or check hostel rul
             for s in valid_screenshots:
                 st.image(s, use_container_width=True, caption="Source Webpage Snapshot")
                 
+        if sources:
+            st.markdown("---")
+            with st.expander("📝 View Exact Retrieved Policy Text"):
+                for s in sources:
+                    st.markdown(f"> {s['content']}\n\n— **{s['source']}**")
+                
+        if execution_time > 0:
+            st.caption(f"⏱️ **Total Agent Execution Time:** {execution_time:.2f} seconds")
+            if breakdown:
+                with st.expander("⏳ View Time Breakdown"):
+                    for b in breakdown:
+                        st.markdown(f"- **{b['step']}**: {b['time']:.2f} seconds")
+            
         st.session_state.messages.append({
             "role": "assistant", 
             "content": answer, 
             "logs": logs,
-            "screenshots": valid_screenshots
+            "screenshots": valid_screenshots,
+            "sources": sources,
+            "execution_time": execution_time,
+            "breakdown": breakdown
         })

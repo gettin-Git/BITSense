@@ -26,5 +26,8 @@ data/screenshots/*
 data/scavenged_history.json
 data/student_records.csv
 
+# Saved pages from logged-in portals (contain personal data and session tokens)
+debug_page*.html
+
 # macOS
 .DS_Store

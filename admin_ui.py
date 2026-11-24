@@ -81,7 +81,10 @@ with col4:
             perm_screenshot = ""
             if screenshot and os.path.exists(screenshot):
                 perm_screenshot = os.path.join(SCREENSHOTS_DIR, os.path.basename(screenshot))
-                shutil.copyfile(screenshot, perm_screenshot)
+                # The scavenger already saves the screenshot here; copying a file onto
+                # itself raises SameFileError, so only copy when it lives elsewhere.
+                if not (os.path.exists(perm_screenshot) and os.path.samefile(screenshot, perm_screenshot)):
+                    shutil.copyfile(screenshot, perm_screenshot)
                 
             # Move metadata to policies dir for ingest_policies.py
             dest_meta = os.path.join(POLICIES_DIR, pdf_name + ".meta.json")

@@ -92,17 +92,33 @@ class StudentDataTool(BaseTool):
         import duckdb
         if not os.path.exists(STUDENT_RECORDS_CSV):
             return "Error: Student records CSV not found."
-            
-        if any(keyword in sql_query.upper() for keyword in ["DROP", "INSERT", "UPDATE", "DELETE", "ALTER", "CREATE"]):
-            return "Error: Only SELECT queries are allowed."
-            
+
+        # Accept exactly one SELECT statement (CTEs included). Checking the parsed
+        # statement type, rather than searching for keywords, also lets harmless
+        # column names like `created_on` or `last_updated` through.
         try:
-            con = duckdb.connect(database=':memory:', read_only=False)
-            con.execute(f"CREATE VIEW student_records AS SELECT * FROM read_csv_auto('{STUDENT_RECORDS_CSV}')")
+            statements = duckdb.extract_statements(sql_query)
+        except Exception as e:
+            return f"SQL Error: {str(e)}"
+        if len(statements) != 1 or statements[0].type != duckdb.StatementType.SELECT:
+            return "Error: Only a single SELECT query is allowed."
+
+        con = None
+        try:
+            con = duckdb.connect(database=':memory:')
+            # Load the CSV into memory, then cut off all file and network access so the
+            # query can only see `student_records` (no read_text, read_csv, glob, ATTACH...).
+            csv_path = STUDENT_RECORDS_CSV.replace("'", "''")
+            con.execute(f"CREATE TABLE student_records AS SELECT * FROM read_csv_auto('{csv_path}')")
+            con.execute("SET enable_external_access = false")
+            con.execute("SET lock_configuration = true")
             result = con.execute(sql_query).df()
-            
+
             execution_time = time.time() - start_time
             print(f"\n[⏱️ Student Data Tool Execution Time: {execution_time:.2f}s]\n")
             return result.to_string()
         except Exception as e:
             return f"SQL Error: {str(e)}"
+        finally:
+            if con is not None:
+                con.close()
